@@ -3,30 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Viewer PDF</title>
+    <title>Aplikasi Inventori Profesional</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
+            background-color: #f4f4f4;
             margin: 0;
-            padding: 0;
+            padding: 20px;
         }
-        h2 {
-            margin-top: 20px;
+        h1, h2 {
+            color: #333;
         }
-        iframe {
-            width: 90%;
-            height: 90vh;
+        /* Form styling */
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin: 10px 0;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
             border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        /* Table styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        /* Search bar */
+        #search {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        /* Responsive */
+        @media (max-width: 768px) {
+            form, table {
+                padding: 10px;
+            }
+            input, button {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-
-    <h2>Dokumen PDF</h2>
+    <h1>Inventori Barang</h1>
     
-    <!-- Ganti LINK_PDF_GITHUB dengan link raw GitHub -->
-    <iframe src="https://docs.google.com/gview?url=LINK_PDF_GITHUB&embedded=true"></iframe>
+    <!-- Form Tambah Barang -->
+    <h2>Tambah Barang</h2>
+    <form id="addForm">
+        <label>Nama Barang: <input type="text" id="nama_barang" required></label>
+        <label>Jumlah: <input type="number" id="jumlah" required></label>
+        <label>Harga Barang: <input type="number" id="harga_barang" required></label>
+        <button type="submit">Tambah</button>
+    </form>
+    
+    <!-- Search Bar -->
+    <h2>Daftar Barang</h2>
+    <input type="text" id="search" placeholder="Cari barang...">
+    
+    <!-- Tabel Data Barang -->
+    <table id="dataTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nama Barang</th>
+                <th>Jumlah</th>
+                <th>Harga Barang</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="dataBody"></tbody>
+    </table>
 
+    <script>
+        const apiUrl = "https://script.google.com/macros/s/AKfycbwOeY7R0CnTGkIjkSys9Goqk8EnOhOVFmAHrfd_0pGOyZOknwMwIX_SmDkaXeEZ-EsgRA/exec"; // Ganti dengan URL Web App Anda
+
+        // Fungsi untuk memuat data
+        function loadData() {
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById("dataBody");
+                    tbody.innerHTML = "";
+                    data.forEach(item => {
+                        const row = `<tr>
+                            <td>${item.id}</td>
+                            <td>${item.nama_barang}</td>
+                            <td>${item.jumlah}</td>
+                            <td>${item.harga_barang}</td>
+                            <td>
+                                <button onclick="reduceQuantity('${item.id}', ${item.jumlah})">Kurangi Jumlah</button>
+                                <button onclick="deleteItem('${item.id}')">Hapus</button>
+                            </td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                })
+                .catch(error => console.error("Error:", error));
+        }
+
+        // Memuat data saat halaman dibuka
+        loadData();
+
+        // Menangani submit form untuk menambah barang
+        document.getElementById("addForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const nama_barang = document.getElementById("nama_barang").value;
+            const jumlah = document.getElementById("jumlah").value;
+            const harga_barang = document.getElementById("harga_barang").value;
+
+            fetch(apiUrl, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: "create",
+                    nama_barang: nama_barang,
+                    jumlah: jumlah,
+                    harga_barang: harga_barang
+                }),
+                headers: { "Content-Type": "application/json" }
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === "success") {
+                    alert("Barang berhasil ditambahkan!");
+                    loadData(); // Refresh data
+                    document.getElementById("addForm").reset();
+                } else {
+                    alert("Gagal menambahkan barang.");
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        });
+
+        // Fungsi untuk mengurangi jumlah barang
+        function reduceQuantity(id, currentJumlah) {
+            const newJumlah = prompt("Masukkan jumlah yang ingin dikurangi:", 1);
+            if (newJumlah && !isNaN(newJumlah) && newJumlah > 0) {
+                const updatedJumlah = currentJumlah - parseInt(newJumlah);
+                if (updatedJumlah >= 0) {
+                    fetch(apiUrl, {
+                        method: "POST",
+                        body: JSON.stringify({
+                            action: "update",
+                            id: id,
+                            jumlah: updatedJumlah
+                        }),
+                        headers: { "Content-Type": "application/json" }
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === "success") {
+                            alert("Jumlah barang berhasil dikurangi!");
+                            loadData(); // Refresh data
+                        } else {
+                            alert("Gagal mengurangi jumlah barang.");
+                        }
+                    })
+                    .catch(error => console.error("Error:", error));
+                } else {
+                    alert("Jumlah tidak mencukupi untuk dikurangi.");
+                }
+            }
+        }
+
+        // Fungsi untuk menghapus barang
+        function deleteItem(id) {
+            if (confirm("Apakah Anda yakin ingin menghapus barang ini?")) {
+                fetch(apiUrl, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        action: "delete",
+                        id: id
+                    }),
+                    headers: { "Content-Type": "application/json" }
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status === "success") {
+                        alert("Barang berhasil dihapus!");
+                        loadData(); // Refresh data
+                    } else {
+                        alert("Gagal menghapus barang.");
+                    }
+                })
+                .catch(error => console.error("Error:", error));
+            }
+        }
+
+        // Fungsi pencarian barang
+        document.getElementById("search").addEventListener("input", function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll("#dataBody tr");
+            rows.forEach(row => {
+                const namaBarang = row.children[1].textContent.toLowerCase();
+                if (namaBarang.includes(searchTerm)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        });
+    </script>
 </body>
 </html>
